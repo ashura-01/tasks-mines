@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>30 Days Progress Tracker</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- MOBILE OVERLAY -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app">
+
+        <!-- SIDEBAR -->
+
+        <aside class="sidebar" id="sidebar">
+
+            <div class="sidebar-header">
+
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    ☰
+                </button>
+
+
+
+            </div>
+
+            <!-- AI CHAT -->
+
+            <div class="sidebar-section ai-chat-section">
+
+                <div class="section-head">
+
+                    <h3>AI Assistant</h3>
+
+                    <button class="icon-btn" id="openSettingsBtn">
+                        ⚙
+                    </button>
+
+                </div>
+
+                <div class="chat-box" id="chatBox">
+
+                    <div class="ai-message">
+                        Welcome back.
+                        Ask me about your progress,
+                        roadmap or pentesting topics.
+                    </div>
+
+                </div>
+
+                <div class="chat-input-wrap">
+
+                    <input type="text" id="aiQuestion" placeholder="Ask AI anything..." />
+
+                    <button id="askAiBtn">
+                        →
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- AI SUGGESTIONS -->
+
+            <div class="sidebar-section">
+
+                <h3>AI Suggestions</h3>
+
+                <div class="mini-card">
+                    <strong>Daily Focus</strong>
+
+                    <p id="focusText">
+                        Waiting for tasks...
+                    </p>
+                </div>
+
+                <div class="mini-card">
+                    <strong>Completion Stats</strong>
+
+                    <p id="statsText">
+                        0 / 0 tasks completed
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- CONTROLS -->
+
+        </aside>
+
+        <!-- MAIN -->
+
+        <main class="main">
+
+            <!-- TOP BAR -->
+
+            <div class="main-topbar">
+
+                <div>
+
+                    <h1 id="mainTitle">
+                        Junior Pentester 30 Days
+                    </h1>
+
+                    <p id="mainDescription">
+                        Interactive Progress Tracker
+                    </p>
+
+                </div>
+
+            </div>
+
+            <!-- GRID -->
+
+            <section class="top-layout">
+
+                <!-- LEFT -->
+
+                <div class="left-panel">
+
+                    <!-- BIG PROGRESS -->
+
+                    <div class="big-progress-card">
+
+                        <div class="glow glow-1"></div>
+                        <div class="glow glow-2"></div>
+
+                        <canvas id="overallCanvas" width="340" height="340"></canvas>
+
+                        <div class="overall-center">
+
+                            <h1 id="overallPercent">
+                                0%
+                            </h1>
+
+                            <span>
+                                Overall Progress
+                            </span>
+
+                        </div>
+
+                        <div class="rank-system">
+                            <div class="rank-top">
+                                <div>
+                                    <h2>Skill Ranking</h2>
+                                    <p>Your pentesting progression</p>
+                                </div>
+                                <div class="current-rank"> Rookie </div>
+                            </div>
+                            <div class="rank-list">
+                                <div class="rank-item">
+                                    <div class="rank-info"> <span>Rookie</span> <span>10%</span> </div>
+                                    <div class="rank-bar">
+                                        <div class="rank-fill" style="width:10%"></div>
+                                    </div>
+                                </div>
+                                <div class="rank-item">
+                                    <div class="rank-info"> <span>Veteran</span> <span>25%</span> </div>
+                                    <div class="rank-bar">
+                                        <div class="rank-fill" style="width:25%"></div>
+                                    </div>
+                                </div>
+                                <div class="rank-item">
+                                    <div class="rank-info"> <span>Pro</span> <span>40%</span> </div>
+                                    <div class="rank-bar">
+                                        <div class="rank-fill" style="width:40%"></div>
+                                    </div>
+                                </div>
+                                <div class="rank-item">
+                                    <div class="rank-info"> <span>Master</span> <span>60%</span> </div>
+                                    <div class="rank-bar">
+                                        <div class="rank-fill" style="width:60%"></div>
+                                    </div>
+                                </div>
+                                <div class="rank-item">
+                                    <div class="rank-info"> <span>Grandmaster</span> <span>80%</span> </div>
+                                    <div class="rank-bar">
+                                        <div class="rank-fill" style="width:80%"></div>
+                                    </div>
+                                </div>
+                                <div class="rank-item">
+                                    <div class="rank-info"> <span>Hacker</span> <span>100%</span> </div>
+                                    <div class="rank-bar">
+                                        <div class="rank-fill" style="width:100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- DAYS -->
+
+                    <div class="days-grid" id="daysGrid"></div>
+
+                    <!-- PLAN -->
+
+                    <div class="plan-container">
+
+                        <div class="plan-head">
+
+                            <h2>
+                                30 Days Plan
+                            </h2>
+
+                        </div>
+
+                        <div class="plan-text" id="planText">
+                            No plan loaded.
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- RIGHT -->
+
+                <div class="right-panel">
+                    <div class="digital-clock" id="digitalClock"
+                        style="font-family: 'Inter', sans-serif; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; opacity: 0.9;">
+                        12:00:00 AM
+                    </div>
+                    <div class="task-header">
+
+                        <div>
+
+                            <h2 id="currentDayTitle">
+                                Day 1 Tasks
+                            </h2>
+
+                            <p>
+                                Track your daily progress
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="tasks-container" id="tasksContainer"></div>
+
+                    <div class="navigation">
+
+                        <button id="prevDayBtn">
+                            ← Previous
+                        </button>
+
+                        <button id="nextDayBtn">
+                            Next →
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- IMPORT -->
+
+            <section class="import-section">
+
+                <button class="import-btn" id="openModalBtn">
+                    Import / Replace JSON Plan
+                </button>
+
+            </section>
+
+
+
+            <section class="bottom-controls">
+
+                <button class="side-btn danger" id="resetBtn">
+                    Reset Progress
+                </button>
+
+            </section>
+
+    </div>
+
+    </main>
+    <!-- IMPORT MODAL -->
+
+    <div class="modal hidden" id="jsonModal">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h2>
+                    Import 30 Days Plan
+                </h2>
+
+                <button id="closeModalBtn">
+                    ✕
+                </button>
+
+            </div>
+
+            <textarea id="jsonInput" spellcheck="false">
+{
+  "title": "Junior Pentester 30 Days",
+  "description": "30 day eJPT preparation roadmap",
+  "days": [
+    {
+      "day": 1,
+      "tasks": [
+        "PortSwigger XSS Labs",
+        "THM Intro to Web Hacking",
+        "HTB Starting Point"
+      ]
+    }
+  ]
+}
+      </textarea>
+
+            <button class="save-json-btn" id="saveJsonBtn">
+                Save Plan
+            </button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- SETTINGS MODAL -->
+
+    <div class="modal hidden" id="settingsModal">
+
+        <div class="settings-modal-content">
+
+            <div class="modal-header">
+
+                <h2>
+                    AI Settings
+                </h2>
+
+                <button id="closeSettingsBtn">
+                    ✕
+                </button>
+
+            </div>
+
+            <div class="settings-grid">
+
+                <div class="settings-group">
+
+                    <label>
+                        API URL
+                    </label>
+
+                    <input type="text" id="apiBase" placeholder="https://api.groq.com/openai/v1" />
+
+                </div>
+
+                <div class="settings-group">
+
+                    <label>
+                        Model
+                    </label>
+
+                    <input type="text" id="modelName" placeholder="llama-3.3-70b-versatile" />
+
+                </div>
+
+                <div class="settings-group">
+
+                    <label>
+                        API Key
+                    </label>
+
+                    <input type="password" id="apiKey" placeholder="sk-..." />
+
+                </div>
+
+            </div>
+
+            <button class="save-json-btn" id="saveAiConfigBtn">
+                Save AI Configuration
+            </button>
+
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
