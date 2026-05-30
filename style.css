@@ -601,7 +601,7 @@ body {
 }
 
 .overall-center h1 {
-  font-family: var(--font-display);
+  /* font-family: var(--font-display); */
   font-size: 64px;
   font-weight: 800;
   color: #fff;
