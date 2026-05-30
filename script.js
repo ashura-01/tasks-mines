@@ -190,29 +190,33 @@ function renderHeader(){
 ========================= */
 function renderOverallProgress(){
   const canvas = document.getElementById("overallCanvas");
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  // Leave a small margin; spread 30 rings inward
-  const maxRadius = Math.min(canvas.width, canvas.height) / 2 - 28;
-  const step = maxRadius / 34;
+  // Read the actual rendered CSS width — works at any breakpoint
+  const rect = canvas.getBoundingClientRect();
+  const size = Math.round(rect.width) || 200;
+
+  // Sync drawing buffer to CSS display size
+  canvas.width  = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const maxRadius = size / 2 - 29;
+  const step = maxRadius / 40;
 
   for(let i = 0; i < 30; i++){
     const radius = maxRadius - (i * step);
     if(radius <= 2) break;
     const start = -Math.PI / 2;
     const end = start + (Math.PI * 2 * getDayProgress(i + 1));
-
-    // background track
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.strokeStyle = "#1b1f3d";
     ctx.lineWidth = 2;
     ctx.stroke();
-
-    // progress arc
     ctx.beginPath();
     ctx.arc(cx, cy, radius, start, end);
     ctx.strokeStyle = COLORS[i];
@@ -714,39 +718,6 @@ function updateClock(){
   h=h%12||12;
   el.textContent=`${String(h).padStart(2,"0")}:${m}:${s} ${ampm}`;
 }
-updateClock();
-setInterval(updateClock,1000);
 
-/* =========================
-   MOBILE CANVAS RESIZE
-   Resizes the main ring canvas then redraws it.
-   Called after render() so it always runs last.
-========================= */
-function fixMobileCanvas(){
-  if(window.innerWidth > 520) return;
-
-  const canvas = document.getElementById("overallCanvas");
-  if(!canvas) return;
-
-  const dpr = window.devicePixelRatio || 1;
-  const size = 300; // desired CSS px size
-
-  // Set the HTML attribute size (drawing buffer)
-  canvas.width  = size * dpr;
-  canvas.height = size * dpr;
-
-  // Set CSS display size
-  canvas.style.width  = size + "px";
-  canvas.style.height = size + "px";
-
-  // Scale the context for HiDPI then redraw
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  // Redraw using the updated canvas dimensions
-  renderOverallProgress();
-}
-
-// Run after initial render and on every resize
-window.addEventListener("load", () => { render(); fixMobileCanvas(); });
-window.addEventListener("resize", () => { fixMobileCanvas(); });
+// Re-render on resize so canvas adjusts to screen size
+window.addEventListener("resize", () => { render(); });

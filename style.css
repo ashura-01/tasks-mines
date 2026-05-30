@@ -1533,8 +1533,8 @@ body {
     align-items: center;
   }
   #overallCanvas {
-    width: 300px !important;
-    height: 300px !important;
+    width: min(300px, 85vw) !important;
+    height: min(300px, 85vw) !important;
     max-width: 300px;
   }
   .overall-center h1 { font-size: 36px; }
