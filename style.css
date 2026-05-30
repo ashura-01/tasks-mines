@@ -66,6 +66,11 @@ body {
   z-index: 1;
 }
 
+.right-panel {
+  min-width: 0;
+  width: 100%;
+}
+
 /* =========================
    OVERLAY
 ========================= */
@@ -1410,8 +1415,10 @@ body {
 }
 
 /* =========================
-   RESPONSIVE
+   RESPONSIVE — REPLACE ALL
+   EXISTING @media BLOCKS
 ========================= */
+
 @media (max-width: 1280px) {
   .top-layout { grid-template-columns: 1fr; }
   .right-panel { position: relative; top: 0; }
@@ -1421,38 +1428,236 @@ body {
   .sidebar {
     position: fixed;
     left: 0; top: 0;
+    height: 100%;
     transform: translateX(0);
+    z-index: 999;
   }
   .sidebar.collapsed {
     transform: translateX(-100%);
     width: 310px;
     min-width: 310px;
+    padding: 20px 18px;
+    border-right: 1px solid var(--border);
   }
+  .sidebar.collapsed > * { opacity: 0; pointer-events: none; }
   .main { padding: 16px; }
-  .main-topbar {
-    flex-wrap: wrap;
-    gap: 14px;
-  }
+  .main-topbar { flex-wrap: wrap; gap: 12px; }
+  .topbar-right { width: 100%; justify-content: space-between; }
 }
 
 @media (max-width: 768px) {
-  .main-topbar h1 { font-size: 22px;color: #b1baff; }
-  .topbar-right { flex-wrap: wrap; }
-  .mobile-ai-fab { display: flex; }
-  .top-layout { display: flex; flex-direction: column; }
+  .top-layout { display: flex; flex-direction: column; gap: 16px; }
   .left-panel { display: contents; }
   .big-progress-card { order: 1; }
-  .right-panel { order: 2; }
-  .days-section { order: 3; }
-  .plan-container { order: 4; }
-  #overallCanvas { width: 260px; height: 260px; }
-  .overall-center h1 { font-size: 50px; }
-  .rank-system { width: 88%; }
+  .right-panel       { order: 2; }
+  .days-section      { order: 3; }
+  .plan-container    { order: 4; }
+  .mobile-ai-fab { display: flex; }
 }
 
 @media (max-width: 520px) {
-  .days-grid { grid-template-columns: repeat(3, 1fr); }
-  .main { padding: 10px; }
-  .weekly-stats-row { grid-template-columns: 1fr 1fr 1fr; }
-  .topbar-actions { display: none; }
+  /* ── BASE ── */
+  .main {
+    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ensure app fills viewport with no overflow */
+  .app {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* ── TOPBAR ── */
+  .main-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 14px;
+  }
+  .topbar-left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .topbar-badge { display: none; }
+  .main-topbar h1 {
+    font-size: 15px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .main-topbar > .topbar-left > div > p {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar-right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+  }
+  .digital-clock {
+    font-size: 11px;
+    padding: 6px 10px;
+    letter-spacing: 1px;
+  }
+  .topbar-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .action-pill {
+    font-size: 10px;
+    padding: 6px 10px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── BIG PROGRESS CARD ── */
+  .big-progress-card {
+    min-height: unset;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 20px 16px 24px;
+    border-radius: 20px;
+    align-items: center;
+  }
+  #overallCanvas {
+    width: 300px !important;
+    height: 300px !important;
+    max-width: 300px;
+  }
+  .overall-center h1 { font-size: 36px; }
+  .percent-prefix, .percent-sub { font-size: 9px; }
+  .rank-system {
+    width: 90%;
+    margin-top: 10px;
+    gap: 6px;
+  }
+  .rank-name { width: 82px; font-size: 9px; }
+  .rank-pct  { font-size: 9px; }
+
+  /* ── RIGHT PANEL: force full width ── */
+  .right-panel {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 12px;
+    border-radius: 16px;
+    gap: 12px;
+    /* remove sticky so it doesn't constrain width */
+    position: relative;
+    top: auto;
+  }
+
+  /* task header */
+  .day-indicator { width: 46px; height: 46px; border-radius: 12px; }
+  .day-num { font-size: 19px; }
+  .task-meta h2 { font-size: 15px; }
+  .task-meta p  { font-size: 10px; }
+  .task-item    { padding: 10px 12px; border-radius: 12px; }
+  .task-item label { font-size: 12px; line-height: 1.6; }
+
+  /* ── WEEKLY MONITOR: full width ── */
+  .weekly-monitor {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 10px;
+    border-radius: 14px;
+    gap: 10px;
+  }
+  .weekly-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .week-tabs { flex-wrap: wrap; gap: 4px; }
+  .week-tab  { font-size: 9px; padding: 4px 8px; }
+
+  /* bars stretch across full width */
+  .weekly-bars {
+    width: 100%;
+    box-sizing: border-box;
+    height: 80px;
+    gap: 3px;
+  }
+  .weekly-bar-bg  { height: 58px; }
+  .weekly-bar-label { font-size: 8px; }
+
+  .weekly-stats-row {
+    width: 100%;
+    box-sizing: border-box;
+    grid-template-columns: repeat(3,1fr);
+    gap: 6px;
+  }
+  .weekly-stat      { padding: 8px 6px; border-radius: 10px; }
+  .weekly-stat-val  { font-size: 16px; }
+  .weekly-stat-label { font-size: 8px; letter-spacing: 1px; }
+
+  /* ── NAVIGATION ── */
+  .navigation {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .nav-btn { padding: 8px 14px; font-size: 10px; border-radius: 10px; }
+  .nav-day-counter { font-size: 13px; }
+
+  /* ── DAYS MATRIX: full width, bigger cards ── */
+  .days-section {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 16px;
+    padding: 14px 12px;
+  }
+  .days-grid {
+    width: 100%;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .day-card {
+    padding: 10px 4px 8px;
+    border-radius: 12px;
+    min-width: 0;
+  }
+  .day-card canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 48px;
+    display: block;
+    margin: 0 auto;
+  }
+  .day-card h4 {
+    font-size: 9px;
+    margin-top: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── PLAN ── */
+  .plan-container {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 16px;
+    padding: 14px 12px;
+  }
+  .plan-text { font-size: 11px; max-height: 200px; }
+
+  /* ── MODALS ── */
+  .modal { padding: 12px; }
+  .modal-content, .settings-modal-content {
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+  #jsonInput { height: 240px; font-size: 11px; }
 }

@@ -5,7 +5,7 @@ const STORAGE_KEY = "tracker_30_days_data";
 const AI_CONFIG_KEY = "tracker_ai_config";
 
 let currentDay = 1;
-let activeWeek = 1; // which week is shown in the weekly monitor
+let activeWeek = 1;
 
 /* =========================
    COLORS
@@ -137,13 +137,13 @@ if(window.innerWidth <= 980){
 }
 
 /* =========================
-   DRAW CIRCLE
+   DRAW CIRCLE (mini day cards)
 ========================= */
 function drawCircle(canvas, percent, color, thickness=8){
   const ctx = canvas.getContext("2d");
   const w = canvas.width, h = canvas.height;
   ctx.clearRect(0,0,w,h);
-  const cx=w/2, cy=h/2, r=(w/2)-20;
+  const cx=w/2, cy=h/2, r=(w/2)-6;
 
   ctx.beginPath();
   ctx.arc(cx,cy,r,0,Math.PI*2);
@@ -186,31 +186,42 @@ function renderHeader(){
 
 /* =========================
    OVERALL CIRCLE
+   Uses canvas.width/height so it works at any size
 ========================= */
 function renderOverallProgress(){
   const canvas = document.getElementById("overallCanvas");
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  const cx=canvas.width/2, cy=canvas.height/2;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  for(let i=0;i<30;i++){
-    const radius=140-(i*2.9);
-    const start=-Math.PI/2;
-    const end=start+(Math.PI*2*getDayProgress(i+1));
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  // Leave a small margin; spread 30 rings inward
+  const maxRadius = Math.min(canvas.width, canvas.height) / 2 - 28;
+  const step = maxRadius / 34;
+
+  for(let i = 0; i < 30; i++){
+    const radius = maxRadius - (i * step);
+    if(radius <= 2) break;
+    const start = -Math.PI / 2;
+    const end = start + (Math.PI * 2 * getDayProgress(i + 1));
+
+    // background track
     ctx.beginPath();
-    ctx.arc(cx,cy,radius,0,Math.PI*2);
-    ctx.strokeStyle="#1b1f3d";
-    ctx.lineWidth=2;
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = "#1b1f3d";
+    ctx.lineWidth = 2;
     ctx.stroke();
+
+    // progress arc
     ctx.beginPath();
-    ctx.arc(cx,cy,radius,start,end);
-    ctx.strokeStyle=COLORS[i];
-    ctx.lineWidth=2.5;
-    ctx.lineCap="round";
+    ctx.arc(cx, cy, radius, start, end);
+    ctx.strokeStyle = COLORS[i];
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
     ctx.stroke();
   }
 
-  const percent = Math.floor(getOverallProgress()*100);
+  const percent = Math.floor(getOverallProgress() * 100);
   document.getElementById("overallPercent").textContent = `${percent}%`;
   renderRankSystem(percent);
 }
@@ -285,12 +296,10 @@ function renderTasks(){
   container.innerHTML="";
   const day = appData.days.find(d=>d.day===currentDay);
 
-  // Update day indicator + nav counter
   document.getElementById("dayNum").textContent = String(currentDay).padStart(2,"0");
   document.getElementById("navCurrentDay").textContent = currentDay;
   document.getElementById("currentDayTitle").textContent = `Day ${currentDay} Tasks`;
 
-  // Day progress bar + label
   const totalTasks = day?.tasks?.length || 0;
   const doneTasks  = day?.completed?.length || 0;
   const dayPct     = totalTasks === 0 ? 0 : (doneTasks / totalTasks) * 100;
@@ -363,7 +372,6 @@ function renderStats(){
    WEEKLY MONITOR
 ========================= */
 function getWeekData(week){
-  // week: 1-based (1..5 for 30 days)
   const startDay = (week - 1) * 7 + 1;
   return Array.from({ length: 7 }, (_, i) => {
     const dayNum = startDay + i;
@@ -374,12 +382,11 @@ function getWeekData(week){
 }
 
 function renderWeeklyMonitor(){
-  const totalWeeks = 5; // ceil(30/7) = 5 (week 5 has days 29-30 + 5 nulls)
+  const totalWeeks = 5;
   const tabsEl   = document.getElementById("weekTabs");
   const barsEl   = document.getElementById("weeklyBars");
   const statsEl  = document.getElementById("weeklyStatsRow");
 
-  // --- TABS ---
   tabsEl.innerHTML = "";
   for(let w = 1; w <= totalWeeks; w++){
     const btn = document.createElement("button");
@@ -392,11 +399,10 @@ function renderWeeklyMonitor(){
     tabsEl.appendChild(btn);
   }
 
-  // --- BARS ---
   barsEl.innerHTML = "";
   const weekDays = getWeekData(activeWeek);
 
-  let weekTasks = 0, weekDone = 0, weekActiveDays = 0;
+  let weekTasks = 0, weekDone = 0;
 
   weekDays.forEach((d, i) => {
     const wrap = document.createElement("div");
@@ -412,61 +418,53 @@ function renderWeeklyMonitor(){
     label.className = "weekly-bar-label";
 
     if(!d){
-      // no day (week 5 overflow)
       fill.classList.add("empty");
       fill.style.height = "0%";
       label.textContent = "—";
-    } else {
-      const total = d.tasks.length;
-      const done  = d.completed.length;
-      weekTasks += total;
-      weekDone  += done;
-
-      const pct = total === 0 ? 0 : done / total;
-
-      if(pct === 1 && total > 0){
-        fill.classList.add("done");
-      } else if(pct > 0){
-        fill.classList.add("partial");
-      } else {
-        fill.classList.add("empty");
-      }
-
-      // Use actual day label cycling through MON-SUN
-      label.textContent = DAY_LABELS[i];
-      if(d.day === currentDay) label.classList.add("active-day");
-
-      if(total > 0) weekActiveDays++;
-
-      // Animate bar height after paint
-      fill.style.height = "0%";
       bg.appendChild(fill);
       wrap.appendChild(bg);
       wrap.appendChild(label);
       barsEl.appendChild(wrap);
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          fill.style.height = `${Math.round(pct * 100)}%`;
-        });
-      });
-
-      // Make bar clickable → navigate to that day
-      bg.title = `Day ${d.day}: ${done}/${total}`;
-      bg.onclick = () => {
-        currentDay = d.day;
-        render();
-      };
-      return; // skip generic append below
+      return;
     }
 
+    const total = d.tasks.length;
+    const done  = d.completed.length;
+    weekTasks += total;
+    weekDone  += done;
+
+    const pct = total === 0 ? 0 : done / total;
+
+    if(pct === 1 && total > 0){
+      fill.classList.add("done");
+    } else if(pct > 0){
+      fill.classList.add("partial");
+    } else {
+      fill.classList.add("empty");
+    }
+
+    label.textContent = DAY_LABELS[i];
+    if(d.day === currentDay) label.classList.add("active-day");
+
+    fill.style.height = "0%";
     bg.appendChild(fill);
     wrap.appendChild(bg);
     wrap.appendChild(label);
     barsEl.appendChild(wrap);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        fill.style.height = `${Math.round(pct * 100)}%`;
+      });
+    });
+
+    bg.title = `Day ${d.day}: ${done}/${total}`;
+    bg.onclick = () => {
+      currentDay = d.day;
+      render();
+    };
   });
 
-  // --- STATS ROW ---
   const weekPct = weekTasks === 0 ? 0 : Math.round((weekDone / weekTasks) * 100);
   statsEl.innerHTML = `
     <div class="weekly-stat">
@@ -494,10 +492,8 @@ function render(){
   renderTasks();
   renderPlanText();
   renderStats();
-  renderWeeklyMonitor();
-  // Sync active week to current day
   activeWeek = Math.ceil(currentDay / 7);
-  renderWeeklyMonitor(); // re-render after syncing activeWeek
+  renderWeeklyMonitor();
 }
 
 render();
@@ -720,3 +716,37 @@ function updateClock(){
 }
 updateClock();
 setInterval(updateClock,1000);
+
+/* =========================
+   MOBILE CANVAS RESIZE
+   Resizes the main ring canvas then redraws it.
+   Called after render() so it always runs last.
+========================= */
+function fixMobileCanvas(){
+  if(window.innerWidth > 520) return;
+
+  const canvas = document.getElementById("overallCanvas");
+  if(!canvas) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const size = 300; // desired CSS px size
+
+  // Set the HTML attribute size (drawing buffer)
+  canvas.width  = size * dpr;
+  canvas.height = size * dpr;
+
+  // Set CSS display size
+  canvas.style.width  = size + "px";
+  canvas.style.height = size + "px";
+
+  // Scale the context for HiDPI then redraw
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Redraw using the updated canvas dimensions
+  renderOverallProgress();
+}
+
+// Run after initial render and on every resize
+window.addEventListener("load", () => { render(); fixMobileCanvas(); });
+window.addEventListener("resize", () => { fixMobileCanvas(); });
