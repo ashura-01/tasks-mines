@@ -445,7 +445,7 @@ body {
 }
 
 .main-topbar h1 {
-  font-family: var(--font-display);
+  /* font-family: var(--font-display); */
   font-size: 30px;
   font-weight: 800;
   color: #b1baff;
@@ -923,7 +923,7 @@ body {
   line-height: 1.7;
   word-break: break-word;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 13px;
   color: var(--text);
   font-family: var(--font-mono);
 }
