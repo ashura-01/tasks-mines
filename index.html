@@ -1,316 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>30 Days Progress Tracker</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet" />
-
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>30 Days Progress Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
-
 <body>
 
-    <!-- MOBILE OVERLAY -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <div class="app">
-
-        <!-- SIDEBAR -->
-
-        <aside class="sidebar" id="sidebar">
-
-            <div class="sidebar-header">
-
-                <button class="sidebar-toggle" id="sidebarToggle">
-                    ☰
-                </button>
-
-
-
-            </div>
-
-            <!-- AI CHAT -->
-
-            <div class="sidebar-section ai-chat-section">
-
-                <div class="section-head">
-
-                    <h3>AI Assistant</h3>
-
-                    <button class="icon-btn" id="openSettingsBtn">
-                        ⚙
-                    </button>
-
-                </div>
-
-                <div class="chat-box" id="chatBox">
-
-                    <div class="ai-message">
-                        Welcome back.
-                        Ask me about your progress,
-                        roadmap or pentesting topics.
-                    </div>
-
-                </div>
-
-                <div class="chat-input-wrap">
-
-                    <input type="text" id="aiQuestion" placeholder="Ask AI anything..." />
-
-                    <button id="askAiBtn">
-                        →
-                    </button>
-
-                </div>
-
-            </div>
-
-            <!-- AI SUGGESTIONS -->
-
-            <div class="sidebar-section">
-
-                <h3>AI Suggestions</h3>
-
-                <div class="mini-card">
-                    <strong>Daily Focus</strong>
-
-                    <p id="focusText">
-                        Waiting for tasks...
-                    </p>
-                </div>
-
-                <div class="mini-card">
-                    <strong>Completion Stats</strong>
-
-                    <p id="statsText">
-                        0 / 0 tasks completed
-                    </p>
-                </div>
-
-            </div>
-
-            <!-- CONTROLS -->
-
-        </aside>
-
-        <!-- MAIN -->
-
-        <main class="main">
-
-            <!-- TOP BAR -->
-
-            <div class="main-topbar">
-
-                <div>
-
-                    <h1 id="mainTitle">
-                        Junior Pentester 30 Days
-                    </h1>
-
-                    <p id="mainDescription">
-                        Interactive Progress Tracker
-                    </p>
-
-                </div>
-
-            </div>
-
-            <!-- GRID -->
-
-            <section class="top-layout">
-
-                <!-- LEFT -->
-
-                <div class="left-panel">
-
-                    <!-- BIG PROGRESS -->
-
-                    <div class="big-progress-card">
-
-                        <div class="glow glow-1"></div>
-                        <div class="glow glow-2"></div>
-
-                        <canvas id="overallCanvas" width="340" height="340"></canvas>
-
-                        <div class="overall-center">
-
-                            <h1 id="overallPercent">
-                                0%
-                            </h1>
-
-                            <span>
-                                Overall Progress
-                            </span>
-
-                        </div>
-
-                        <div class="rank-system">
-                            <div class="rank-top">
-                                <div>
-                                    <h2>Skill Ranking</h2>
-                                    <p>Your pentesting progression</p>
-                                </div>
-                                <div class="current-rank"> Rookie </div>
-                            </div>
-                            <div class="rank-list">
-                                <div class="rank-item">
-                                    <div class="rank-info"> <span>Rookie</span> <span>10%</span> </div>
-                                    <div class="rank-bar">
-                                        <div class="rank-fill" style="width:10%"></div>
-                                    </div>
-                                </div>
-                                <div class="rank-item">
-                                    <div class="rank-info"> <span>Veteran</span> <span>25%</span> </div>
-                                    <div class="rank-bar">
-                                        <div class="rank-fill" style="width:25%"></div>
-                                    </div>
-                                </div>
-                                <div class="rank-item">
-                                    <div class="rank-info"> <span>Pro</span> <span>40%</span> </div>
-                                    <div class="rank-bar">
-                                        <div class="rank-fill" style="width:40%"></div>
-                                    </div>
-                                </div>
-                                <div class="rank-item">
-                                    <div class="rank-info"> <span>Master</span> <span>60%</span> </div>
-                                    <div class="rank-bar">
-                                        <div class="rank-fill" style="width:60%"></div>
-                                    </div>
-                                </div>
-                                <div class="rank-item">
-                                    <div class="rank-info"> <span>Grandmaster</span> <span>80%</span> </div>
-                                    <div class="rank-bar">
-                                        <div class="rank-fill" style="width:80%"></div>
-                                    </div>
-                                </div>
-                                <div class="rank-item">
-                                    <div class="rank-info"> <span>Hacker</span> <span>100%</span> </div>
-                                    <div class="rank-bar">
-                                        <div class="rank-fill" style="width:100%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- DAYS -->
-
-                    <div class="days-grid" id="daysGrid"></div>
-
-                    <!-- PLAN -->
-
-                    <div class="plan-container">
-
-                        <div class="plan-head">
-
-                            <h2>
-                                30 Days Plan
-                            </h2>
-
-                        </div>
-
-                        <div class="plan-text" id="planText">
-                            No plan loaded.
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <!-- RIGHT -->
-
-                <div class="right-panel">
-                    <div class="digital-clock" id="digitalClock"
-                        style="font-family: 'Inter', sans-serif; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; opacity: 0.9;">
-                        12:00:00 AM
-                    </div>
-                    <div class="task-header">
-
-                        <div>
-
-                            <h2 id="currentDayTitle">
-                                Day 1 Tasks
-                            </h2>
-
-                            <p>
-                                Track your daily progress
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                    <div class="tasks-container" id="tasksContainer"></div>
-
-                    <div class="navigation">
-
-                        <button id="prevDayBtn">
-                            ← Previous
-                        </button>
-
-                        <button id="nextDayBtn">
-                            Next →
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-            <!-- IMPORT -->
-
-            <section class="import-section">
-
-                <button class="import-btn" id="openModalBtn">
-                    Import / Replace JSON Plan
-                </button>
-
-            </section>
-
-
-
-            <section class="bottom-controls">
-
-                <button class="side-btn danger" id="resetBtn">
-                    Reset Progress
-                </button>
-
-            </section>
-
+<canvas id="particleBg"></canvas>
+<div class="grid-overlay"></div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-mark">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text" id="sidebarLogoText">NEXUS</span>
+      </div>
     </div>
 
-    </main>
-    <!-- IMPORT MODAL -->
+    <div class="sidebar-section ai-chat-section">
+      <div class="section-head">
+        <div class="section-label">
+          <span class="section-dot"></span>
+          <h3>AI CORE</h3>
+        </div>
+        <button class="icon-btn" id="openSettingsBtn" title="AI Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        </button>
+      </div>
+      <div class="chat-box" id="chatBox">
+        <div class="ai-message">
+          <span class="ai-prefix">◈ NEXUS /</span>
+          System online. Query your progress, roadmap, or pentesting methodology.
+        </div>
+      </div>
+      <div class="chat-input-wrap">
+        <input type="text" id="aiQuestion" placeholder="// query nexus..."/>
+        <button id="askAiBtn" aria-label="Send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
 
-    <div class="modal hidden" id="jsonModal">
+    <div class="sidebar-section">
+      <div class="section-label">
+        <span class="section-dot"></span>
+        <h3>INTEL</h3>
+      </div>
+      <div class="intel-grid">
+        <div class="intel-card">
+          <div class="intel-icon">⚡</div>
+          <div class="intel-body">
+            <div class="intel-label">DAILY FOCUS</div>
+            <div class="intel-value" id="focusText">Awaiting data...</div>
+          </div>
+        </div>
+        <div class="intel-card">
+          <div class="intel-icon">◎</div>
+          <div class="intel-body">
+            <div class="intel-label">COMPLETION</div>
+            <div class="intel-value" id="statsText">0 / 0</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <div class="modal-content">
+  </aside>
 
-            <div class="modal-header">
+  <!-- MAIN -->
+  <main class="main">
 
-                <h2>
-                    Import 30 Days Plan
-                </h2>
+    <!-- TOP BAR -->
+    <div class="main-topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle topbar-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-badge">ACTIVE</div>
+        <div>
+          <h1 id="mainTitle">Junior Pentester 30 Days</h1>
+          <p id="mainDescription">Interactive Progress Tracker</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="digital-clock" id="digitalClock">00:00:00 AM</div>
+        <div class="topbar-actions">
+          <button class="action-pill" id="openModalBtn">⊕ Import Plan</button>
+          <button class="action-pill danger" id="resetBtn">⊘ Reset</button>
+        </div>
+      </div>
+    </div>
 
-                <button id="closeModalBtn">
-                    ✕
-                </button>
+    <!-- LAYOUT -->
+    <section class="top-layout">
 
+      <!-- LEFT PANEL -->
+      <div class="left-panel">
+
+        <!-- BIG PROGRESS -->
+        <div class="big-progress-card">
+          <div class="glow glow-1"></div>
+          <div class="glow glow-2"></div>
+          <div class="glow glow-3"></div>
+          <div class="progress-rings-label">OVERALL MATRIX</div>
+          <canvas id="overallCanvas" width="340" height="340"></canvas>
+          <div class="overall-center">
+            <div class="percent-prefix">PROGRESS</div>
+            <h1 id="overallPercent">0%</h1>
+            <span class="percent-sub">across 30 days</span>
+          </div>
+          <div class="rank-system"></div>
+        </div>
+
+        <!-- DAYS GRID -->
+        <div class="days-section">
+          <div class="days-section-header">
+            <span class="section-label-inline">DAYS MATRIX</span>
+            <span class="days-count-badge" id="daysBadge">30 DAYS</span>
+          </div>
+          <div class="days-grid" id="daysGrid"></div>
+        </div>
+
+        <!-- PLAN -->
+        <div class="plan-container">
+          <div class="plan-head">
+            <span class="section-label-inline">30-DAY ROADMAP</span>
+          </div>
+          <div class="plan-text" id="planText">No plan loaded.</div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="right-panel">
+
+        <!-- DAY HEADER -->
+        <div class="task-header">
+          <div class="task-header-top">
+            <div class="day-indicator">
+              <span class="day-num" id="dayNum">01</span>
+              <span class="day-label">DAY</span>
             </div>
+            <div class="task-meta">
+              <h2 id="currentDayTitle">Day 1 Tasks</h2>
+              <p id="dayProgressLabel">0 of 0 completed</p>
+            </div>
+          </div>
+          <div class="day-progress-bar-wrap">
+            <div class="day-progress-bar" id="dayProgressBar" style="width:0%"></div>
+          </div>
+        </div>
 
-            <textarea id="jsonInput" spellcheck="false">
-{
+        <!-- TASKS -->
+        <div class="tasks-container" id="tasksContainer"></div>
+
+        <!-- WEEKLY PROGRESS MONITOR -->
+        <div class="weekly-monitor" id="weeklyMonitor">
+          <div class="weekly-header">
+            <span class="section-label-inline">WEEKLY INTEL</span>
+            <div class="week-tabs" id="weekTabs"></div>
+          </div>
+          <div class="weekly-bars" id="weeklyBars"></div>
+          <div class="weekly-stats-row" id="weeklyStatsRow"></div>
+        </div>
+
+        <!-- NAVIGATION -->
+        <div class="navigation">
+          <button id="prevDayBtn" class="nav-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            PREV
+          </button>
+          <span class="nav-day-counter">
+            <span id="navCurrentDay">1</span> <span class="nav-slash">/</span> 30
+          </span>
+          <button id="nextDayBtn" class="nav-btn">
+            NEXT
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+<!-- MOBILE AI FAB -->
+<button class="mobile-ai-fab" id="mobileAiFab" aria-label="Open AI">◈</button>
+
+<!-- MOBILE AI DRAWER -->
+<div class="mobile-ai-drawer" id="mobileAiDrawer">
+  <div class="mobile-ai-inner">
+    <div class="mobile-ai-header">
+      <span class="logo-icon">◈</span>
+      <h3>NEXUS AI</h3>
+      <button class="mobile-ai-close" id="mobileAiClose">✕</button>
+    </div>
+    <div class="mobile-chat-box" id="mobileChatBox">
+      <div class="ai-message">
+        <span class="ai-prefix">◈ NEXUS /</span>
+        System online. Query your progress, roadmap, or pentesting methodology.
+      </div>
+    </div>
+    <div class="chat-input-wrap">
+      <input type="text" id="mobileAiQuestion" placeholder="// query nexus..."/>
+      <button id="mobileAskAiBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal hidden" id="jsonModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-tag">JSON</span>
+        <h2>Import 30-Day Plan</h2>
+      </div>
+      <button id="closeModalBtn" class="close-btn">✕</button>
+    </div>
+    <textarea id="jsonInput" spellcheck="false">{
   "title": "Junior Pentester 30 Days",
   "description": "30 day eJPT preparation roadmap",
   "days": [
@@ -323,81 +243,39 @@
       ]
     }
   ]
-}
-      </textarea>
+}</textarea>
+    <button class="save-btn" id="saveJsonBtn">⊕ LOAD PLAN</button>
+  </div>
+</div>
 
-            <button class="save-json-btn" id="saveJsonBtn">
-                Save Plan
-            </button>
-
-        </div>
-
+<!-- SETTINGS MODAL -->
+<div class="modal hidden" id="settingsModal">
+  <div class="settings-modal-content">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-tag">CONFIG</span>
+        <h2>AI Settings</h2>
+      </div>
+      <button id="closeSettingsBtn" class="close-btn">✕</button>
     </div>
-
-
-
-    <!-- SETTINGS MODAL -->
-
-    <div class="modal hidden" id="settingsModal">
-
-        <div class="settings-modal-content">
-
-            <div class="modal-header">
-
-                <h2>
-                    AI Settings
-                </h2>
-
-                <button id="closeSettingsBtn">
-                    ✕
-                </button>
-
-            </div>
-
-            <div class="settings-grid">
-
-                <div class="settings-group">
-
-                    <label>
-                        API URL
-                    </label>
-
-                    <input type="text" id="apiBase" placeholder="https://api.groq.com/openai/v1" />
-
-                </div>
-
-                <div class="settings-group">
-
-                    <label>
-                        Model
-                    </label>
-
-                    <input type="text" id="modelName" placeholder="llama-3.3-70b-versatile" />
-
-                </div>
-
-                <div class="settings-group">
-
-                    <label>
-                        API Key
-                    </label>
-
-                    <input type="password" id="apiKey" placeholder="sk-..." />
-
-                </div>
-
-            </div>
-
-            <button class="save-json-btn" id="saveAiConfigBtn">
-                Save AI Configuration
-            </button>
-
-        </div>
-
+    <div class="settings-grid">
+      <div class="settings-group">
+        <label>API ENDPOINT</label>
+        <input type="text" id="apiBase" placeholder="https://api.groq.com/openai/v1"/>
+      </div>
+      <div class="settings-group">
+        <label>MODEL ID</label>
+        <input type="text" id="modelName" placeholder="llama-3.3-70b-versatile"/>
+      </div>
+      <div class="settings-group">
+        <label>API KEY</label>
+        <input type="password" id="apiKey" placeholder="sk-••••••••••••••••"/>
+      </div>
     </div>
+    <button class="save-btn" id="saveAiConfigBtn">⊕ SAVE CONFIG</button>
+  </div>
+</div>
 
-    <script src="script.js"></script>
-
+<script src="script.js"></script>
 </body>
-
 </html>
