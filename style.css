@@ -232,7 +232,7 @@ body {
 
 /* CHAT */
 .chat-box {
-  height: 520px;
+  height: 820px;
   overflow-y: auto;
   background: rgba(8, 10, 22, 0.9);
   border: 1px solid var(--border);
