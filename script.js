@@ -6,6 +6,8 @@ const AI_CONFIG_KEY = "tracker_ai_config";
 
 let currentDay = 1;
 let activeWeek = 1;
+let focusDebounceTimer = null;
+let lastFocusDay = null; // track which day focus was last generated for
 
 /* =========================
    COLORS
@@ -29,6 +31,24 @@ const RANKS = [
 ];
 
 const DAY_LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
+/* =========================
+   TASK HELPERS
+   Tasks are stored internally as { task: string, link: string|null }
+   JSON input supports both plain strings and objects
+========================= */
+function normalizeTask(raw) {
+  if (typeof raw === "string") return { task: raw, link: null };
+  return { task: raw.task || raw.name || "", link: raw.link || raw.url || null };
+}
+
+function getTaskLabel(t) {
+  return typeof t === "string" ? t : (t.task || "");
+}
+
+function getTaskLink(t) {
+  return typeof t === "string" ? null : (t.link || null);
+}
 
 /* =========================
    LOAD DATA
@@ -177,6 +197,52 @@ function getOverallProgress() {
 }
 
 /* =========================
+   BUILD FULL CONTEXT FOR AI
+   Returns a structured snapshot of the entire plan
+========================= */
+function buildFullContext() {
+  const overallPct = Math.floor(getOverallProgress() * 100);
+  const day = appData.days.find(d => d.day === currentDay);
+
+  // All tasks for current day with status
+  const todayTasks = (day?.tasks || []).map((t, i) => {
+    const label = getTaskLabel(t);
+    const done = day.completed.includes(i);
+    return `  [${done ? "✓ DONE" : "○ TODO"}] ${label}`;
+  });
+
+  // Completed tasks across all days
+  const allCompleted = [];
+  appData.days.forEach(d => {
+    d.completed.forEach(i => {
+      const label = getTaskLabel(d.tasks[i]);
+      if (label) allCompleted.push(`Day ${d.day}: ${label}`);
+    });
+  });
+
+  // Pending tasks for current day
+  const pending = (day?.tasks || [])
+    .filter((_, i) => !day.completed.includes(i))
+    .map(t => getTaskLabel(t));
+
+  // Days with partial or no progress
+  const behindDays = appData.days
+    .filter(d => d.tasks.length > 0 && d.completed.length < d.tasks.length && d.day < currentDay)
+    .map(d => `Day ${d.day} (${d.completed.length}/${d.tasks.length})`);
+
+  return {
+    overallPct,
+    currentDay,
+    planTitle: appData.title,
+    todayTasks,
+    pendingToday: pending,
+    completedToday: (day?.completed || []).map(i => getTaskLabel(day.tasks[i])),
+    allCompleted,
+    behindDays
+  };
+}
+
+/* =========================
    HEADER
 ========================= */
 function renderHeader() {
@@ -186,16 +252,11 @@ function renderHeader() {
 
 /* =========================
    OVERALL CIRCLE
-   Uses canvas.width/height so it works at any size
 ========================= */
 function renderOverallProgress() {
   const canvas = document.getElementById("overallCanvas");
-
-  // Read the actual rendered CSS width — works at any breakpoint
   const rect = canvas.getBoundingClientRect();
   const size = Math.round(rect.width) || 200;
-
-  // Sync drawing buffer to CSS display size
   canvas.width = size;
   canvas.height = size;
 
@@ -316,12 +377,16 @@ function renderTasks() {
     return;
   }
 
-  day.tasks.forEach((task, index) => {
+  day.tasks.forEach((taskRaw, index) => {
+    const taskLabel = getTaskLabel(taskRaw);
+    const taskLink = getTaskLink(taskRaw);
+
     const item = document.createElement("div");
     item.className = "task-item";
     item.style.animationDelay = `${index * 0.07}s`;
     const checked = day.completed.includes(index);
     if (checked) item.classList.add("completed");
+
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = checked;
@@ -334,11 +399,38 @@ function renderTasks() {
       saveData();
       render();
     };
+
+    const taskBody = document.createElement("div");
+    taskBody.className = "task-body";
+
     const label = document.createElement("label");
-    label.textContent = task;
+    label.textContent = taskLabel;
     label.onclick = () => { checkbox.click(); };
+
+    taskBody.appendChild(label);
+
+    // Link chip
+    if (taskLink) {
+      const chip = document.createElement("a");
+      chip.className = "task-link-chip";
+      chip.href = taskLink;
+      chip.target = "_blank";
+      chip.rel = "noopener noreferrer";
+      chip.title = taskLink;
+
+      // Extract domain for display
+      let displayUrl = taskLink;
+      try {
+        const u = new URL(taskLink);
+        displayUrl = u.hostname.replace(/^www\./, "");
+      } catch (_) {}
+
+      chip.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>${displayUrl}`;
+      taskBody.appendChild(chip);
+    }
+
     item.appendChild(checkbox);
-    item.appendChild(label);
+    item.appendChild(taskBody);
     container.appendChild(item);
   });
 }
@@ -353,7 +445,7 @@ function renderPlanText() {
     text += `DAY ${day.day}\n`;
     if (day.tasks.length === 0) { text += "  • No Tasks\n\n"; }
     else {
-      day.tasks.forEach(t => { text += `  • ${t}\n`; });
+      day.tasks.forEach(t => { text += `  • ${getTaskLabel(t)}\n`; });
       text += "\n";
     }
   });
@@ -367,9 +459,78 @@ function renderStats() {
   const completed = appData.days.reduce((a, d) => a + d.completed.length, 0);
   const total = appData.days.reduce((a, d) => a + d.tasks.length, 0);
   document.getElementById("statsText").textContent = `${completed} / ${total} tasks completed`;
+}
+
+/* =========================
+   AI-DRIVEN DAILY FOCUS
+   Generates a smart motivational + tactical tip from Marko
+   based on actual task status for the current day
+========================= */
+async function renderAiFocus() {
+  const config = getAiConfig();
+  const focusEl = document.getElementById("focusText");
+
+  // If no AI config, fall back to first pending task
+  if (!config?.key || !config?.model) {
+    const day = appData.days.find(d => d.day === currentDay);
+    const pending = (day?.tasks || []).find((_, i) => !day.completed.includes(i));
+    focusEl.textContent = pending ? getTaskLabel(pending) : (day?.tasks?.length ? "All tasks done! 🎉" : "No tasks for today.");
+    return;
+  }
+
+  // Don't re-generate if same day (avoid hammering API on every checkbox)
+  // We use a cache key that includes completion state
   const day = appData.days.find(d => d.day === currentDay);
-  document.getElementById("focusText").textContent =
-    day?.tasks?.[0] ? `${day.tasks[0]}` : "No tasks for today.";
+  const cacheKey = `focus_${currentDay}_${(day?.completed || []).sort().join(",")}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    focusEl.innerHTML = cached;
+    return;
+  }
+
+  // Show loading dots
+  focusEl.innerHTML = `<span class="typing-dots"><span></span><span></span><span></span></span>`;
+
+  const ctx = buildFullContext();
+  const doneToday = ctx.completedToday.length;
+  const totalToday = (day?.tasks || []).length;
+  const pendingToday = ctx.pendingToday;
+
+  const prompt = `You are Marko, a sharp pentesting mentor AI inside a 30-day training tracker. 
+
+Current state:
+- Plan: ${ctx.planTitle}
+- Overall progress: ${ctx.overallPct}%
+- Day ${ctx.currentDay} of 30
+- Tasks done today: ${doneToday}/${totalToday}
+- Completed today: ${ctx.completedToday.join(", ") || "none yet"}
+- Still pending today: ${pendingToday.join(", ") || "all done!"}
+- Days behind: ${ctx.behindDays.join(", ") || "none"}
+
+Write a single sharp, tactical focus tip for right now. Max 2 sentences. Be specific to the actual pending tasks. No fluff. Sound like a real mentor, not a chatbot. Don't use generic phrases like "keep it up" or "you've got this".`;
+
+  try {
+    const response = await fetch(`${config.base}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${config.key}`
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 80,
+        temperature: 0.7
+      })
+    });
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content?.trim() || "Focus on your next pending task.";
+    focusEl.textContent = text;
+    sessionStorage.setItem(cacheKey, focusEl.innerHTML);
+  } catch (err) {
+    const fallback = pendingToday[0] ? `Next: ${pendingToday[0]}` : "All tasks done today!";
+    focusEl.textContent = fallback;
+  }
 }
 
 /* =========================
@@ -498,6 +659,11 @@ function render() {
   renderStats();
   activeWeek = Math.ceil(currentDay / 7);
   renderWeeklyMonitor();
+  // AI focus: debounce slightly so rapid checkbox clicks don't spam
+  clearTimeout(focusDebounceTimer);
+  focusDebounceTimer = setTimeout(() => {
+    renderAiFocus();
+  }, 400);
 }
 
 render();
@@ -528,6 +694,7 @@ document.getElementById("closeSettingsBtn").onclick = () => { settingsModal.clas
 
 /* =========================
    SAVE JSON
+   Supports tasks as strings OR { task, link } objects
 ========================= */
 document.getElementById("saveJsonBtn").onclick = () => {
   try {
@@ -536,10 +703,21 @@ document.getElementById("saveJsonBtn").onclick = () => {
     if (!parsed.days || !Array.isArray(parsed.days)) { alert("Invalid JSON format."); return; }
     const newDays = Array.from({ length: 30 }, (_, i) => {
       const found = parsed.days.find(d => d.day === i + 1);
-      return { day: i + 1, tasks: found?.tasks || [], completed: [] };
+      const rawTasks = found?.tasks || [];
+      // Normalize: accept both strings and { task, link } objects
+      const tasks = rawTasks.map(t => {
+        if (typeof t === "string") return t; // keep as string for backward compat
+        return { task: t.task || t.name || "", link: t.link || t.url || null };
+      });
+      return { day: i + 1, tasks, completed: [] };
     });
-    appData = { title: parsed.title || "30 Days Plan", description: parsed.description || "Interactive Progress Tracker", days: newDays };
+    appData = {
+      title: parsed.title || "30 Days Plan",
+      description: parsed.description || "Interactive Progress Tracker",
+      days: newDays
+    };
     saveData();
+    sessionStorage.clear(); // clear focus cache on new plan
     currentDay = 1;
     render();
     jsonModal.classList.add("hidden");
@@ -553,6 +731,7 @@ document.getElementById("saveJsonBtn").onclick = () => {
 document.getElementById("resetBtn").onclick = () => {
   if (!confirm("Reset all progress?")) return;
   appData.days.forEach(d => { d.completed = []; });
+  sessionStorage.clear();
   saveData();
   render();
 };
@@ -576,8 +755,10 @@ document.getElementById("saveAiConfigBtn").onclick = () => {
     key: document.getElementById("apiKey").value
   };
   localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(config));
+  sessionStorage.clear(); // clear focus cache so it regenerates with new config
   alert("AI Config Saved");
   settingsModal.classList.add("hidden");
+  renderAiFocus(); // immediately re-generate focus with new config
 };
 
 /* =========================
@@ -588,19 +769,44 @@ function getAiConfig() {
 }
 
 function buildPrompt(question) {
-  const completed = Math.floor(getOverallProgress() * 100);
+  const ctx = buildFullContext();
+
+  // Build a rich task status block
+  const taskStatusLines = appData.days.map(d => {
+    if (d.tasks.length === 0) return null;
+    const doneCount = d.completed.length;
+    const totalCount = d.tasks.length;
+    const taskLines = d.tasks.map((t, i) => {
+      const label = getTaskLabel(t);
+      const done = d.completed.includes(i);
+      return `      [${done ? "✓" : "○"}] ${label}`;
+    }).join("\n");
+    return `  Day ${d.day} (${doneCount}/${totalCount} done):\n${taskLines}`;
+  }).filter(Boolean).join("\n");
+
+  return `You are Marko, a sharp pentesting mentor AI inside a 30-day training tracker.
+
+=== FULL TRACKER STATE ===
+Plan: ${ctx.planTitle}
+Overall progress: ${ctx.overallPct}% complete
+Current day being viewed: Day ${ctx.currentDay}
+
+Today's task breakdown:
+${(appData.days.find(d => d.day === currentDay)?.tasks || []).map((t, i) => {
   const day = appData.days.find(d => d.day === currentDay);
-  const dayTasks = day?.tasks?.join(", ") || "none";
-  return `You are an AI pentesting mentor and productivity assistant.
+  const done = day.completed.includes(i);
+  return `  [${done ? "✓ DONE" : "○ TODO"}] ${getTaskLabel(t)}`;
+}).join("\n") || "  No tasks"}
 
-Current progress: ${completed}% overall completed.
-Current Day: ${currentDay}
-Today's tasks: ${dayTasks}
+All tasks across the plan:
+${taskStatusLines || "  No tasks loaded yet"}
 
-User question:
+Days behind schedule: ${ctx.behindDays.join(", ") || "none"}
+
+=== USER QUESTION ===
 ${question}
 
-Keep response concise and useful (2-4 sentences max).`;
+Answer as Marko — sharp, technical, concise. Reference the user's actual tasks and progress where relevant. 2-4 sentences max unless the question genuinely needs more.`;
 }
 
 async function callAI(question, chatBoxEl) {
@@ -718,6 +924,7 @@ function updateClock() {
   h = h % 12 || 12;
   el.textContent = `${String(h).padStart(2, "0")}:${m}:${s} ${ampm}`;
 }
+setInterval(updateClock, 1000);
+updateClock();
 
-// Re-render on resize so canvas adjusts to screen size
 window.addEventListener("resize", () => { render(); });

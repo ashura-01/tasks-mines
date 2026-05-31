@@ -61,7 +61,11 @@
           <div class="intel-icon">⚡</div>
           <div class="intel-body">
             <div class="intel-label">DAILY FOCUS</div>
-            <div class="intel-value" id="focusText">Awaiting data...</div>
+            <div class="intel-value" id="focusText">
+              <span class="focus-loading">
+                <span class="typing-dots"><span></span><span></span><span></span></span>
+              </span>
+            </div>
           </div>
         </div>
         <div class="intel-card">
@@ -231,6 +235,11 @@
       </div>
       <button id="closeModalBtn" class="close-btn">✕</button>
     </div>
+    <div class="json-hint">
+      Tasks support an optional <code>link</code> field — it renders as a clickable chip on the task card.<br>
+      Format: <code>{ "task": "PortSwigger XSS Labs", "link": "https://portswigger.net/web-security/cross-site-scripting" }</code><br>
+      Plain strings still work too.
+    </div>
     <textarea id="jsonInput" spellcheck="false">{
   "title": "Junior Pentester 30 Days",
   "description": "30 day eJPT preparation roadmap",
@@ -238,9 +247,9 @@
     {
       "day": 1,
       "tasks": [
-        "PortSwigger XSS Labs",
-        "THM Intro to Web Hacking",
-        "HTB Starting Point"
+        { "task": "PortSwigger XSS Labs", "link": "https://portswigger.net/web-security/cross-site-scripting" },
+        { "task": "THM Intro to Web Hacking", "link": "https://tryhackme.com/room/introwebapplicationsecurity" },
+        { "task": "HTB Starting Point", "link": "https://www.hackthebox.com/starting-point" }
       ]
     }
   ]
