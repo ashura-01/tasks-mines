@@ -90,7 +90,8 @@ function loadData() {
     canvas.height = window.innerHeight;
   }
   resize();
-  window.addEventListener("resize", resize);
+  let _particleResizeTimer = null;
+  window.addEventListener("resize", () => { clearTimeout(_particleResizeTimer); _particleResizeTimer = setTimeout(resize, 200); });
 
   function spawnParticle() {
     return {
@@ -328,29 +329,38 @@ function renderRankSystem(percent) {
 ========================= */
 function renderDaysGrid() {
   const grid = document.getElementById("daysGrid");
-  grid.innerHTML = "";
-  appData.days.forEach((day, index) => {
-    const card = document.createElement("div");
-    card.className = "day-card";
-    card.style.animationDelay = `${index * 0.03}s`;
-    if (currentDay === day.day) card.classList.add("active");
-    const canvas = document.createElement("canvas");
-    canvas.width = 80; canvas.height = 80;
-    const title = document.createElement("h4");
-    title.textContent = `Day ${day.day}`;
-    card.appendChild(canvas);
-    card.appendChild(title);
-    grid.appendChild(card);
-    drawCircle(canvas, getDayProgress(day.day), COLORS[index]);
-    card.onclick = () => {
-      currentDay = day.day;
-      render();
-      if (window.innerWidth <= 980) {
-        sidebar.classList.add("collapsed");
-        sidebarOverlay.classList.remove("active");
-      }
-    };
-  });
+  if (grid.children.length !== appData.days.length) {
+    grid.innerHTML = "";
+    appData.days.forEach((day, index) => {
+      const card = document.createElement("div");
+      card.className = "day-card";
+      card.dataset.day = day.day;
+      if (currentDay === day.day) card.classList.add("active");
+      const canvas = document.createElement("canvas");
+      canvas.width = 80; canvas.height = 80;
+      const title = document.createElement("h4");
+      title.textContent = `Day ${day.day}`;
+      card.appendChild(canvas);
+      card.appendChild(title);
+      grid.appendChild(card);
+      drawCircle(canvas, getDayProgress(day.day), COLORS[index]);
+      card.onclick = () => {
+        currentDay = day.day;
+        render();
+        if (window.innerWidth <= 980) {
+          sidebar.classList.add("collapsed");
+          sidebarOverlay.classList.remove("active");
+        }
+      };
+    });
+  } else {
+    Array.from(grid.children).forEach((card, index) => {
+      const day = appData.days[index];
+      card.classList.toggle("active", currentDay === day.day);
+      const canvas = card.querySelector("canvas");
+      drawCircle(canvas, getDayProgress(day.day), COLORS[index]);
+    });
+  }
 }
 
 /* =========================
@@ -383,7 +393,7 @@ function renderTasks() {
 
     const item = document.createElement("div");
     item.className = "task-item";
-    item.style.animationDelay = `${index * 0.07}s`;
+
     const checked = day.completed.includes(index);
     if (checked) item.classList.add("completed");
 
@@ -423,7 +433,7 @@ function renderTasks() {
       try {
         const u = new URL(taskLink);
         displayUrl = u.hostname.replace(/^www\./, "");
-      } catch (_) {}
+      } catch (_) { }
 
       chip.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>${displayUrl}`;
       taskBody.appendChild(chip);
@@ -438,6 +448,7 @@ function renderTasks() {
 /* =========================
    PLAN
 ========================= */
+let _planTextCache = null;
 function renderPlanText() {
   const el = document.getElementById("planText");
   let text = "";
@@ -449,7 +460,7 @@ function renderPlanText() {
       text += "\n";
     }
   });
-  el.textContent = text;
+  if (text !== _planTextCache) { el.textContent = text; _planTextCache = text; }
 }
 
 /* =========================
@@ -793,10 +804,10 @@ Current day being viewed: Day ${ctx.currentDay}
 
 Today's task breakdown:
 ${(appData.days.find(d => d.day === currentDay)?.tasks || []).map((t, i) => {
-  const day = appData.days.find(d => d.day === currentDay);
-  const done = day.completed.includes(i);
-  return `  [${done ? "✓ DONE" : "○ TODO"}] ${getTaskLabel(t)}`;
-}).join("\n") || "  No tasks"}
+    const day = appData.days.find(d => d.day === currentDay);
+    const done = day.completed.includes(i);
+    return `  [${done ? "✓ DONE" : "○ TODO"}] ${getTaskLabel(t)}`;
+  }).join("\n") || "  No tasks"}
 
 All tasks across the plan:
 ${taskStatusLines || "  No tasks loaded yet"}
@@ -927,4 +938,5 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-window.addEventListener("resize", () => { render(); });
+let _renderResizeTimer = null;
+window.addEventListener("resize", () => { clearTimeout(_renderResizeTimer); _renderResizeTimer = setTimeout(render, 200); });
