@@ -672,7 +672,7 @@ div.typing-dots {
   width: 400px;
   height: 400px;
   max-width: 100%;
-  animation: float 2s infinite ease-in-out;
+  animation: float 3s infinite ease-in-out;
 }
 
 .overall-center {
