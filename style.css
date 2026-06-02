@@ -1046,7 +1046,7 @@ div.typing-dots {
   line-height: 1.7;
   word-break: break-word;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text);
   font-family: var(--font-mono);
 }
