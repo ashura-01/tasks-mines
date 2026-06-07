@@ -940,3 +940,262 @@ updateClock();
 
 let _renderResizeTimer = null;
 window.addEventListener("resize", () => { clearTimeout(_renderResizeTimer); _renderResizeTimer = setTimeout(render, 200); });
+
+/* =========================
+   WORD MAP — global water-surface physics
+   - Mouse color: #FFD0C4 (warm peach)
+   - No overlap: grid-based origin placement
+   - All words highlighted via focus queue (no skips)
+   - Add words to WORDS array → everything auto-adjusts
+========================= */
+(function initWordMap() {
+  const card = document.querySelector(".big-progress-card");
+  if (!card) return;
+
+  const old = document.getElementById("wordMapCanvas");
+  if (old) old.remove();
+
+  const wc = document.createElement("canvas");
+  wc.id = "wordMapCanvas";
+  wc.style.cssText = [
+    "position:absolute","inset:0",
+    "width:100%","height:100%",
+    "pointer-events:none","z-index:0",
+    "border-radius:inherit"
+  ].join(";");
+  card.insertBefore(wc, card.firstChild);
+  card.style.position = card.style.position || "relative";
+
+  // ── Word list — add/remove freely, everything auto-adjusts ───────
+  const WORDS = [
+    "success","pain","failure","try again",
+    "becoming demon","psychopath","hacker","black hat",
+    "Network","Cyber Security","persistence","recon",
+    "exploit","privilege","escalation","enumeration",
+    "shell","payload","lateral movement","zero day",
+    "brute force","OSINT","red team","blue team",
+    "CVE","patch","firewall","bypass","stealth","rootkit",
+    "job","business","poverty","richness","knowledge",
+    "discipline","grind","focus","patience","sacrifice",
+    "sleep","hunger","obsession","purpose","legacy"
+  ];
+
+  // ── Physics ──────────────────────────────────────────────────────
+  const SPRING_K      = 0.022;
+  const DAMPING       = 0.78;
+  const MAX_SPEED     = 22;
+  const MOUSE_FORCE   = 3.2;
+  const FALLOFF_EXP   = 1.6;
+  const RADIUS_FACTOR = 1.1;   // covers full card diagonal
+
+  // ── Highlight ────────────────────────────────────────────────────
+  const FOCUS_INTERVAL = 130;   // ticks per word — shorter so all get turns
+  const FOCUS_SCALE    = 1.44;
+  const FOCUS_ALPHA    = 0.82;
+  const IDLE_ALPHA_LO  = 0.13;
+  const IDLE_ALPHA_HI  = 0.26;
+  const ALPHA_LERP     = 0.042;
+  const SCALE_LERP     = 0.058;
+
+  // Mouse color #FFD0C4 decomposed
+  const MOUSE_R = 255, MOUSE_G = 208, MOUSE_B = 196;
+
+  let W = 0, H = 0, DIAG = 1;
+  let words = [], focusIdx = -1, focusCycle = 0;
+  // Round-robin queue so every word gets highlighted
+  let focusQueue = [];
+  let mouse = { x: 0, y: 0, active: false };
+
+  card.addEventListener("mousemove", e => {
+    const r = card.getBoundingClientRect();
+    mouse.x = e.clientX - r.left;
+    mouse.y = e.clientY - r.top;
+    mouse.active = true;
+  }, { passive: true });
+  card.addEventListener("mouseleave", () => { mouse.active = false; }, { passive: true });
+
+  // ── Grid-based seed — no overlaps ────────────────────────────────
+  function seedWords() {
+    W = wc.offsetWidth  || card.offsetWidth  || 340;
+    H = wc.offsetHeight || card.offsetHeight || 500;
+    wc.width  = W;
+    wc.height = H;
+    DIAG = Math.sqrt(W * W + H * H);
+
+    const count  = WORDS.length;
+    // Fit words into a grid with padding
+    const PAD_X  = 0.06 * W;
+    const PAD_Y  = 0.07 * H;
+    const areaW  = W - PAD_X * 2;
+    const areaH  = H - PAD_Y * 2;
+
+    // cols × rows grid that fits all words
+    const cols   = Math.ceil(Math.sqrt(count * (areaW / areaH)));
+    const rows   = Math.ceil(count / cols);
+    const cellW  = areaW / cols;
+    const cellH  = areaH / rows;
+
+    // Shuffle word order for visual variety
+    const indices = Array.from({ length: count }, (_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+
+    words = WORDS.map((text, idx) => {
+      const slot  = indices[idx];
+      const col   = slot % cols;
+      const row   = Math.floor(slot / cols);
+      // Jitter within cell (±30%) so it doesn't look like a grid
+      const jx    = (Math.random() - 0.5) * cellW * 0.6;
+      const jy    = (Math.random() - 0.5) * cellH * 0.6;
+      const ox    = PAD_X + col * cellW + cellW * 0.5 + jx;
+      const oy    = PAD_Y + row * cellH + cellH * 0.5 + jy;
+      const baseAlpha = IDLE_ALPHA_LO + Math.random() * (IDLE_ALPHA_HI - IDLE_ALPHA_LO);
+      return {
+        text, ox, oy, x: ox, y: oy,
+        vx: 0, vy: 0,
+        baseSize: 9 + Math.random() * 7,   // 9–16px — smaller so more fit
+        baseAlpha, alpha: baseAlpha, targetAlpha: baseAlpha,
+        scale: 1, targetScale: 1,
+        focused: false,
+        mouseT: 0
+      };
+    });
+
+    // Reset focus queue
+    focusQueue = Array.from({ length: count }, (_, i) => i);
+    shuffleArr(focusQueue);
+    focusIdx = -1;
+  }
+
+  function shuffleArr(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  // ── Round-robin focus — every word gets highlighted ──────────────
+  function pickNextFocus() {
+    if (focusIdx !== -1 && words[focusIdx]) {
+      words[focusIdx].focused = false;
+      words[focusIdx].targetAlpha = words[focusIdx].baseAlpha;
+      words[focusIdx].targetScale = 1;
+    }
+    if (focusQueue.length === 0) {
+      focusQueue = Array.from({ length: words.length }, (_, i) => i);
+      shuffleArr(focusQueue);
+    }
+    focusIdx = focusQueue.pop();
+    words[focusIdx].focused = true;
+    words[focusIdx].targetAlpha = FOCUS_ALPHA;
+    words[focusIdx].targetScale  = FOCUS_SCALE;
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+  let rafId = null;
+
+  function tick() {
+    rafId = requestAnimationFrame(tick);
+    const ctx = wc.getContext("2d");
+    ctx.clearRect(0, 0, W, H);
+
+    focusCycle++;
+    if (focusCycle >= FOCUS_INTERVAL) { focusCycle = 0; pickNextFocus(); }
+
+    const ATTRACT_RADIUS = DIAG * RADIUS_FACTOR;
+
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+
+      const sx = (w.ox - w.x) * SPRING_K;
+      const sy = (w.oy - w.y) * SPRING_K;
+
+      let fmx = 0, fmy = 0, prox = 0;
+      if (mouse.active) {
+        const dx = mouse.x - w.ox;
+        const dy = mouse.y - w.oy;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        const t  = clamp(1 - dist / ATTRACT_RADIUS, 0, 1);
+        const ft = Math.pow(t, FALLOFF_EXP);
+        prox = ft;
+        const ddx = mouse.x - w.x;
+        const ddy = mouse.y - w.y;
+        const ddist = Math.sqrt(ddx * ddx + ddy * ddy) || 0.01;
+        fmx = (ddx / ddist) * MOUSE_FORCE * ft;
+        fmy = (ddy / ddist) * MOUSE_FORCE * ft;
+      }
+
+      w.vx = (w.vx + sx + fmx) * DAMPING;
+      w.vy = (w.vy + sy + fmy) * DAMPING;
+      const spd = Math.sqrt(w.vx * w.vx + w.vy * w.vy);
+      if (spd > MAX_SPEED) { w.vx = w.vx / spd * MAX_SPEED; w.vy = w.vy / spd * MAX_SPEED; }
+      w.x += w.vx;
+      w.y += w.vy;
+
+      w.mouseT = lerp(w.mouseT, prox, mouse.active ? 0.10 : 0.05);
+      const mt = clamp(w.mouseT, 0, 1);
+
+      if (mt > 0.02) {
+        w.targetAlpha = clamp(lerp(w.focused ? FOCUS_ALPHA : w.baseAlpha, 0.90, mt), 0, 1);
+        w.targetScale = lerp(w.focused ? FOCUS_SCALE : 1, 1.55, mt * 0.85);
+      } else {
+        w.targetAlpha = w.focused ? FOCUS_ALPHA : w.baseAlpha;
+        w.targetScale = w.focused ? FOCUS_SCALE : 1;
+      }
+
+      w.alpha = lerp(w.alpha, w.targetAlpha, ALPHA_LERP);
+      w.scale = lerp(w.scale, w.targetScale, SCALE_LERP);
+
+      const size = w.baseSize * w.scale;
+
+      // Color: dim indigo → whitish-indigo (focus) → #FFD0C4 (mouse)
+      const focusT = w.focused && mt < 0.05
+        ? clamp((w.alpha - w.baseAlpha) / (FOCUS_ALPHA - w.baseAlpha + 0.001), 0, 1)
+        : 0;
+      let r = lerp(110, 205, focusT);
+      let g = lerp(115, 208, focusT);
+      let b = lerp(185, 255, focusT);
+      // blend to #FFD0C4 on mouse proximity
+      r = lerp(r, MOUSE_R, mt);
+      g = lerp(g, MOUSE_G, mt);
+      b = lerp(b, MOUSE_B, mt);
+
+      ctx.save();
+      ctx.font = `${Math.round(size)}px 'JetBrains Mono','Space Mono',monospace`;
+      ctx.fillStyle = `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${w.alpha.toFixed(3)})`;
+      ctx.textBaseline = "middle";
+
+      if (focusT > 0.08 || mt > 0.04) {
+        // glow shifts from indigo (focus) to warm peach (mouse)
+        const glowR = Math.round(lerp(180, 255, mt));
+        const glowG = Math.round(lerp(190, 200, mt));
+        const glowB = Math.round(lerp(255, 180, mt));
+        ctx.shadowColor = `rgba(${glowR},${glowG},${glowB},${(focusT * 0.28 + mt * 0.52).toFixed(3)})`;
+        ctx.shadowBlur  = 5 + mt * 20 + focusT * 9;
+      }
+
+      ctx.fillText(w.text, w.x, w.y);
+      ctx.restore();
+    }
+  }
+
+  let _rt = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(_rt);
+    _rt = setTimeout(() => {
+      if (rafId) cancelAnimationFrame(rafId);
+      const prev = words.map(w => ({ vx: w.vx, vy: w.vy }));
+      seedWords();
+      prev.forEach((p, i) => { if (words[i]) { words[i].vx = p.vx * 0.25; words[i].vy = p.vy * 0.25; }});
+      pickNextFocus();
+      tick();
+    }, 250);
+  });
+
+  seedWords();
+  requestAnimationFrame(() => { pickNextFocus(); tick(); });
+})();
