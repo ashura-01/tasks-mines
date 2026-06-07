@@ -967,18 +967,29 @@ window.addEventListener("resize", () => { clearTimeout(_renderResizeTimer); _ren
   card.style.position = card.style.position || "relative";
 
   // ── Word list — add/remove freely, everything auto-adjusts ───────
-  const WORDS = [
-    "success","pain","failure","try again",
-    "becoming demon","psychopath","hacker","black hat",
-    "Network","Cyber Security","persistence","recon",
-    "exploit","privilege","escalation","enumeration",
-    "shell","payload","lateral movement","zero day",
-    "brute force","OSINT","red team","blue team",
-    "CVE","patch","firewall","bypass","stealth","rootkit",
-    "job","business","poverty","richness","knowledge",
-    "discipline","grind","focus","patience","sacrifice",
-    "sleep","hunger","obsession","purpose","legacy"
-  ];
+const WORDS = [
+  "success","pain","failure","try again",
+  "becoming demon","psychopath","hacker","black hat",
+  "Network","Cyber Security","persistence","recon",
+  "exploit","privilege","escalation","enumeration",
+  "shell","payload","lateral movement","zero day",
+  "brute force","OSINT","red team","blue team",
+  "CVE","patch","firewall","bypass","stealth","rootkit",
+  "job","business","poverty","richness","knowledge",
+  "discipline","grind","focus","patience","sacrifice",
+  "sleep","hunger","obsession","purpose","legacy",
+  "malware","ransomware","trojan","worm","backdoor",
+  "keylogger","dropper","crypter","obfuscation","sandbox",
+  "reverse shell","bind shell","web shell","C2","beacon",
+  "exfiltration","injection","heap spray","stack smash","ROP",
+  "token stealing","pass the hash","DLL hijacking","bootkit","firmware",
+  "phishing","spear phishing","vishing","smishing","whaling",
+  "proxy","TOR","VPN","dark web","marketplace",
+  "burner","opsec","anonymity","footprinting","scanning",
+  "sniffing","spoofing","poisoning","pivoting","tunneling",
+  "loneliness","rage","hunger for more","no days off","war mode",
+  "broken","unbroken","shadow","ghost","machine"
+];
 
   // ── Physics ──────────────────────────────────────────────────────
   const SPRING_K      = 0.022;
