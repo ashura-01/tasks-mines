@@ -998,7 +998,7 @@ window.addEventListener("resize", () => { clearTimeout(_renderResizeTimer); _ren
   const SCALE_LERP     = 0.058;
 
   // Mouse color #FFD0C4 decomposed
-  const MOUSE_R = 255, MOUSE_G = 208, MOUSE_B = 196;
+  const MOUSE_R = 255, MOUSE_G = 0, MOUSE_B = 0;
 
   let W = 0, H = 0, DIAG = 1;
   let words = [], focusIdx = -1, focusCycle = 0;
