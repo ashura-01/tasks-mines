@@ -329,8 +329,12 @@ function renderRankSystem(percent) {
 ========================= */
 function renderDaysGrid() {
   const grid = document.getElementById("daysGrid");
-  if (grid.children.length !== appData.days.length) {
+  const planSig = appData.title + "_" + appData.days.length;
+  const needRebuild = grid.children.length !== appData.days.length || grid.dataset.planSig !== planSig;
+
+  if (needRebuild) {
     grid.innerHTML = "";
+    grid.dataset.planSig = planSig;
     appData.days.forEach((day, index) => {
       const card = document.createElement("div");
       card.className = "day-card";
@@ -403,11 +407,16 @@ function renderTasks() {
     checkbox.onchange = () => {
       if (checkbox.checked) {
         if (!day.completed.includes(index)) day.completed.push(index);
+        saveData();
+        render();
+        if (typeof window.checkMilestonesAndNotify === "function") {
+          window.checkMilestonesAndNotify(currentDay - 1);
+        }
       } else {
         day.completed = day.completed.filter(i => i !== index);
+        saveData();
+        render();
       }
-      saveData();
-      render();
     };
 
     const taskBody = document.createElement("div");
@@ -940,6 +949,276 @@ updateClock();
 
 let _renderResizeTimer = null;
 window.addEventListener("resize", () => { clearTimeout(_renderResizeTimer); _renderResizeTimer = setTimeout(render, 200); });
+
+/* =========================
+   ACHIEVEMENT ANIMATIONS
+========================= */
+(function initAchievements() {
+  const overlay   = document.getElementById("achieveOverlay");
+  const dismiss   = document.getElementById("achieveDismiss");
+  const mainLine  = document.getElementById("achieveMainLine");
+  const subLine   = document.getElementById("achieveSubLine");
+  const textWrap  = document.getElementById("achieveTextWrap");
+  const spinner   = document.getElementById("achieveSpinner");
+
+  let hideTimer   = null;
+  let busy        = false;
+
+  /* ── Dragon ── */
+  const dragonOverlay = document.getElementById("dragonOverlay");
+  const dragonDismiss = document.getElementById("dragonDismiss");
+  const dragonScreen  = document.getElementById("dragonScreen");
+  const dragonSvg     = dragonOverlay.querySelector("svg");
+  let dragonRunning = false;
+  let dragonRaf     = null;
+  let dragonTimer   = null;
+  let dragonColor   = "#6366f1"; // updated per day
+
+  const xmlns   = "http://www.w3.org/2000/svg";
+  const xlinkns = "http://www.w3.org/1999/xlink";
+
+  function applyDragonColor(col) {
+    // Parse hex → r,g,b
+    const r = parseInt(col.slice(1,3),16);
+    const g = parseInt(col.slice(3,5),16);
+    const b = parseInt(col.slice(5,7),16);
+
+    // Derive a dark shade for body shadow areas
+    const dr = Math.round(r * 0.15), dg = Math.round(g * 0.15), db = Math.round(b * 0.22);
+
+    // ── Inject a <style> block into the SVG that overrides fills ──
+    // This works on <use> rendered instances because CSS specificity beats inline style
+    let svgStyle = dragonOverlay.querySelector("#dragonColorStyle");
+    if (!svgStyle) {
+      svgStyle = document.createElementNS(xmlns, "style");
+      svgStyle.id = "dragonColorStyle";
+      dragonSvg.insertBefore(svgStyle, dragonSvg.firstChild);
+    }
+    svgStyle.textContent = `
+      #Cabeza path:first-child { fill: rgba(${r},${g},${b},0.92) !important; }
+      #Cabeza path:last-child  { fill: rgb(${dr},${dg},${db}) !important; }
+      #AlD1 stop:first-child   { stop-color: ${col}; }
+      #AlD1 stop:last-child    { stop-color: #06d6a0; }
+      #SpD2 stop:first-child   { stop-color: ${col}; }
+      #SpD2 stop:last-child    { stop-color: #06d6a0; }
+    `;
+
+    // Glow the screen group with day color
+    dragonScreen.style.filter = `drop-shadow(0 0 8px rgba(${r},${g},${b},0.9))`;
+    // Tint the overlay background slightly
+    dragonOverlay.style.background = `rgba(${Math.round(r*0.04)},${Math.round(g*0.04)},${Math.round(b*0.08)},0.92)`;
+  }
+
+  let _dragonMoveHandler = null;
+
+  function stopDragon() {
+    dragonRunning = false;
+    if (dragonRaf)   cancelAnimationFrame(dragonRaf);
+    if (dragonTimer) clearTimeout(dragonTimer);
+    if (_dragonMoveHandler) {
+      window.removeEventListener("pointermove", _dragonMoveHandler);
+      _dragonMoveHandler = null;
+    }
+    dragonOverlay.classList.remove("active");
+    dragonScreen.innerHTML = "";
+  }
+
+  function startDragon() {
+    if (dragonRunning) stopDragon();
+    dragonRunning = true;
+    dragonScreen.innerHTML = "";
+    applyDragonColor(dragonColor);
+
+    const vbW = 300, vbH = 300, vbXMin = -150, vbYMin = -150;
+    const mapSvg = (px, py) => ({
+      x: (px / window.innerWidth)  * vbW + vbXMin,
+      y: (py / window.innerHeight) * vbH + vbYMin
+    });
+
+    const N     = 30;
+    const elems = [];
+    const mid   = mapSvg(window.innerWidth / 2, window.innerHeight / 2);
+    for (let i = 0; i < N; i++) elems[i] = { use: null, x: mid.x, y: mid.y };
+
+    const pointer = { x: mid.x, y: mid.y };
+    let frm = Math.random(), rad = 0;
+    const radm = Math.min(vbW, vbH) / 6 - 20;
+
+    const addUse = (id, i) => {
+      const el = document.createElementNS(xmlns, "use");
+      elems[i].use = el;
+      el.setAttributeNS(xlinkns, "xlink:href", "#" + id);
+      dragonScreen.prepend(el);
+    };
+
+    for (let i = 1; i < N; i++) {
+      if (i === 1)              addUse("Cabeza", i);
+      else if (i === 6 || i === 13) addUse("Aletas", i);
+      else                      addUse("Espina", i);
+    }
+
+    const onMove = (e) => {
+      const c = mapSvg(e.clientX, e.clientY);
+      pointer.x = c.x; pointer.y = c.y; rad = 0;
+    };
+    _dragonMoveHandler = onMove;
+    window.addEventListener("pointermove", onMove);
+
+    const run = () => {
+      if (!dragonRunning) { return; }
+      dragonRaf = requestAnimationFrame(run);
+      const e0 = elems[0];
+      e0.x += ((Math.cos(3 * frm) * rad * vbW / vbH) + pointer.x - e0.x) / 10;
+      e0.y += ((Math.sin(4 * frm) * rad * vbH / vbW) + pointer.y - e0.y) / 10;
+
+      for (let i = 1; i < N; i++) {
+        const e = elems[i], ep = elems[i - 1];
+        const a = Math.atan2(e.y - ep.y, e.x - ep.x);
+        e.x += (ep.x - e.x + Math.cos(a) * (100 - i) / 22) / 4;
+        e.y += (ep.y - e.y + Math.sin(a) * (100 - i) / 22) / 4;
+        const s = (162 + 4 * (1 - i)) / 480;
+        if (e.use) {
+          e.use.setAttributeNS(null, "transform",
+            `translate(${(ep.x + e.x) / 2},${(ep.y + e.y) / 2}) rotate(${(180 / Math.PI) * a}) scale(${s},${s})`);
+        }
+      }
+      if (rad < radm) rad++;
+      frm += 0.003;
+      if (rad > 60) { pointer.x += (0 - pointer.x) * 0.05; pointer.y += (0 - pointer.y) * 0.05; }
+    };
+    run();
+
+    dragonDismiss.onclick = stopDragon;
+    dragonTimer = setTimeout(stopDragon, 30000);
+  }
+
+  function showDragon() {
+    dragonColor = COLORS[(currentDay - 1) % COLORS.length];
+    dragonOverlay.classList.add("active");
+    setTimeout(startDragon, 300);
+  }
+
+  /* ── Animate in helper ── */
+  function animIn() {
+    textWrap.classList.remove("pop-in", "pop-out", "smoke-out");
+    void textWrap.offsetWidth; // force reflow
+    textWrap.classList.add("pop-in");
+  }
+
+  /* ── Main show ── */
+  function show(type, mainText, subText, holdMs) {
+    // Priority: month > week > day > task
+    // A higher-priority event can interrupt a task overlay
+    const priority = { task: 0, day: 1, week: 2, month: 3 };
+    const incoming = priority[type] ?? 0;
+    const current  = priority[mainLine.dataset.type ?? "task"] ?? 0;
+    if (busy && incoming <= current) return;
+
+    // Cancel any running hide timer and force-reset state
+    busy = true;
+    clearTimeout(hideTimer);
+    overlay.classList.remove("active");
+    textWrap.classList.remove("pop-in", "pop-out", "smoke-out");
+
+    spinner.style.display  = type === "task" ? "none" : "block";
+    mainLine.className     = `achieve-line ${type}`;
+    mainLine.dataset.type  = type;
+    mainLine.textContent   = mainText;
+    subLine.textContent    = subText;
+
+    // Small delay so DOM reset is visible before pop-in
+    requestAnimationFrame(() => {
+      overlay.classList.add("active");
+      animIn();
+    });
+
+    dismiss.onclick = () => forceHide(type);
+
+    if (type === "month") {
+      hideTimer = setTimeout(() => {
+        // Smoke out current text
+        textWrap.classList.remove("pop-in");
+        void textWrap.offsetWidth;
+        textWrap.classList.add("smoke-out");
+        setTimeout(() => {
+          // Swap text and pop in again
+          mainLine.textContent = "Ready for next 30 days";
+          subLine.textContent  = "// reset and go again";
+          mainLine.className   = "achieve-line day";
+          animIn();
+          hideTimer = setTimeout(() => forceHide(type), 3000);
+        }, 850);
+      }, holdMs);
+    } else {
+      hideTimer = setTimeout(() => forceHide(type), holdMs);
+    }
+  }
+
+  function forceHide(type) {
+    textWrap.classList.remove("pop-in");
+    void textWrap.offsetWidth;
+    textWrap.classList.add("pop-out");
+    setTimeout(() => {
+      overlay.classList.remove("active");
+      textWrap.classList.remove("pop-out");
+      busy = false;
+      if (type === "day" || type === "week" || type === "month") {
+        setTimeout(showDragon, 400);
+      }
+    }, 420);
+  }
+
+  /* ── State guards ── */
+  let lastDayComplete  = -1;
+  let lastWeekComplete = -1;
+  let monthDoneFired   = false;
+
+  /* ── Public API ── */
+  window.checkMilestonesAndNotify = function(dayIdx) {
+    // dayIdx = 0-based index in COLORS / appData.days
+    const day = appData.days.find(d => d.day === currentDay);
+    if (!day || day.tasks.length === 0) {
+      // no tasks — just fire task done
+      show("task", "TASK DONE", "// objective cleared", 1800);
+      return;
+    }
+
+    const allDaysDone = appData.days.filter(d => d.tasks.length > 0)
+                             .every(d => d.completed.length === d.tasks.length);
+    const dayDone     = day.completed.length === day.tasks.length;
+
+    const week        = Math.ceil(currentDay / 7);
+    const startD      = (week - 1) * 7 + 1;
+    const endD        = Math.min(week * 7, 30);
+    const weekDays    = appData.days.filter(d => d.day >= startD && d.day <= endD && d.tasks.length > 0);
+    const weekDone    = weekDays.length > 0 && weekDays.every(d => d.completed.length === d.tasks.length);
+
+    if (allDaysDone && !monthDoneFired) {
+      monthDoneFired = true;
+      show("month", "EXECUTED THE MONTH", "// 30 days — mission complete", 3500);
+    } else if (weekDone && lastWeekComplete !== week) {
+      lastWeekComplete = week;
+      show("week", "KILLED THE WEEK", `// week ${week} — fully executed`, 3800);
+    } else if (dayDone && lastDayComplete !== currentDay) {
+      lastDayComplete = currentDay;
+      show("day", "COMPLETED THE DAY", `// day ${String(currentDay).padStart(2,"0")} cleared`, 3200);
+    } else {
+      show("task", "TASK DONE", "// objective cleared", 1800);
+    }
+  };
+
+  /* ── Reset: clear achievement flags when user resets progress ── */
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    monthDoneFired   = false;
+    lastDayComplete  = -1;
+    lastWeekComplete = -1;
+    busy             = false;
+    clearTimeout(hideTimer);
+    overlay.classList.remove("active");
+    textWrap.classList.remove("pop-in", "pop-out", "smoke-out");
+    stopDragon();
+  }, true); // capture phase so it runs before the onclick handler
+})();
 
 /* =========================
    WORD MAP — global water-surface physics

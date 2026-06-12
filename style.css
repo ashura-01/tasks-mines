@@ -636,36 +636,37 @@ div.typing-dots {
 .glow {
   position: absolute;
   border-radius: 999px;
-  filter: blur(80px);
-  animation: glowPulse 5s infinite ease-in-out;
+  filter: blur(60px);
+  animation: glowPulse 6s infinite ease-in-out;
+  pointer-events: none;
 }
 
 .glow-1 {
-  width: 200px;
-  height: 200px;
+  width: 160px;
+  height: 160px;
   background: #4f46e5;
-  top: -80px;
-  right: -60px;
-  opacity: 0.2;
+  top: -60px;
+  right: -40px;
+  opacity: 0.1;
 }
 
 .glow-2 {
-  width: 180px;
-  height: 180px;
-  background: #9333ea;
-  left: -60px;
-  bottom: -80px;
-  opacity: 0.18;
+  width: 140px;
+  height: 140px;
+  background: #7c3aed;
+  left: -40px;
+  bottom: -60px;
+  opacity: 0.09;
 }
 
 .glow-3 {
-  width: 150px;
-  height: 150px;
+  width: 120px;
+  height: 120px;
   background: #06d6a0;
   right: 20%;
   bottom: 10%;
-  opacity: 0.08;
-  animation-delay: 2s;
+  opacity: 0.05;
+  animation-delay: 2.5s;
 }
 
 #overallCanvas {
@@ -1723,6 +1724,295 @@ div.typing-dots {
   50% {
     opacity: 0.3;
   }
+}
+
+/* =========================
+   ACHIEVEMENT ANIMATIONS
+   Overlay dims behind the text, not the whole screen
+========================= */
+
+/* ── Shared overlay layer ── */
+.achieve-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.achieve-overlay.active {
+  pointer-events: auto;
+}
+
+/* Full dark backdrop with a slight center highlight */
+.achieve-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 3, 12, 0.82);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.achieve-overlay.active::before {
+  opacity: 1;
+}
+
+/* ── Dismiss X button ── */
+.achieve-dismiss {
+  position: absolute;
+  top: 22px;
+  right: 26px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(99,102,241,0.35);
+  border-radius: 8px;
+  background: rgba(5,8,16,0.7);
+  color: rgba(99,102,241,0.45);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  transition: 0.2s;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.achieve-overlay.active .achieve-dismiss {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.4s ease 0.8s;
+}
+
+.achieve-dismiss:hover {
+  color: rgba(99,102,241,0.9);
+  border-color: rgba(99,102,241,0.6);
+}
+
+/* ── Text wrapper ── */
+.achieve-text-wrap {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+}
+
+.achieve-text-wrap.pop-in {
+  animation: achievePopIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+.achieve-text-wrap.pop-out {
+  animation: achievePopOut 0.4s ease forwards;
+}
+
+.achieve-text-wrap.smoke-out {
+  animation: smokeOut 0.8s ease forwards;
+}
+
+@keyframes achievePopIn {
+  from { opacity: 0; transform: scale(0.82) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes achievePopOut {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.9) translateY(-10px); }
+}
+
+/* ── Main achievement line ── */
+.achieve-line {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--text);
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(99,102,241,0.8), 0 0 60px rgba(99,102,241,0.3);
+}
+
+.achieve-line.task { font-size: clamp(22px, 5vw, 38px); }
+.achieve-line.day  { font-size: clamp(28px, 6vw, 52px); }
+.achieve-line.week { font-size: clamp(32px, 7vw, 60px); }
+.achieve-line.month { font-size: clamp(28px, 6.5vw, 54px); }
+
+/* ── Sub-line ── */
+.achieve-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* ── Horizontal scan line ── */
+.achieve-scan {
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary), var(--cyan), transparent);
+  animation: scanPulse 1.8s ease infinite;
+}
+
+@keyframes scanPulse {
+  0%, 100% { opacity: 0.3; transform: scaleX(0.6); }
+  50%       { opacity: 1;   transform: scaleX(1); }
+}
+
+/* ── Orbital ring spinner ── */
+.achieve-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Rotating ring of 8 dots */
+.sp-ring {
+  position: absolute;
+  inset: 0;
+  animation: spRingSpin 2.4s linear infinite;
+}
+
+.sp-ring span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--cyan));
+  margin: -4px 0 0 -4px;
+  animation: spDotPulse 2.4s ease-in-out infinite;
+}
+
+/* Place each of 8 dots around a 32px radius using simple rotation offsets */
+.sp-ring span:nth-child(1) { transform: rotate(0deg)   translateX(32px); animation-delay: 0s;     }
+.sp-ring span:nth-child(2) { transform: rotate(45deg)  translateX(32px); animation-delay: -2.1s;  }
+.sp-ring span:nth-child(3) { transform: rotate(90deg)  translateX(32px); animation-delay: -1.8s;  }
+.sp-ring span:nth-child(4) { transform: rotate(135deg) translateX(32px); animation-delay: -1.5s;  }
+.sp-ring span:nth-child(5) { transform: rotate(180deg) translateX(32px); animation-delay: -1.2s;  }
+.sp-ring span:nth-child(6) { transform: rotate(225deg) translateX(32px); animation-delay: -0.9s;  }
+.sp-ring span:nth-child(7) { transform: rotate(270deg) translateX(32px); animation-delay: -0.6s;  }
+.sp-ring span:nth-child(8) { transform: rotate(315deg) translateX(32px); animation-delay: -0.3s;  }
+
+/* Glowing center core */
+.sp-core {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px 4px rgba(6,214,160,0.5);
+  animation: spCorePulse 1.2s ease-in-out infinite alternate;
+  z-index: 1;
+}
+
+@keyframes spRingSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spDotPulse {
+  0%, 100% { opacity: 0.2; transform: rotate(var(--r,0deg)) translateX(32px) scale(0.6); }
+  50%       { opacity: 1;   transform: rotate(var(--r,0deg)) translateX(32px) scale(1.3); }
+}
+
+@keyframes spCorePulse {
+  from { box-shadow: 0 0 8px 2px rgba(6,214,160,0.4);  transform: scale(0.85); }
+  to   { box-shadow: 0 0 18px 6px rgba(6,214,160,0.7); transform: scale(1.15); }
+}
+
+/* ── Smoke-out exit (month) ── */
+@keyframes smokeOut {
+  0%   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+  100% { opacity: 0; transform: scale(1.18) translateY(-30px); filter: blur(8px); }
+}
+
+/* ── Dragon overlay ── */
+#dragonOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1350;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  background: rgba(2, 3, 10, 0.88);
+}
+
+#dragonOverlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 55% 55% at 50% 50%,
+    rgba(99, 102, 241, 0.06) 0%,
+    rgba(2, 3, 10, 0.0) 70%);
+  pointer-events: none;
+}
+
+#dragonOverlay.active {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+#dragonOverlay svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Dragon themed colors — override SVG fills via filter */
+#dragonOverlay #screen use {
+  filter: drop-shadow(0 0 4px rgba(99,102,241,0.9));
+}
+
+/* Dragon SVG fills: white → indigo, gradient → primary-cyan */
+#dragonOverlay path[style*="fill: #ffffff"] {
+  fill: #a5b4fc !important;
+}
+#dragonOverlay path[style*="fill: #000000"] {
+  fill: #1e1b4b !important;
+}
+
+#dragonDismiss {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 6px;
+  background: rgba(5,8,16,0.6);
+  color: rgba(99,102,241,0.35);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: 0.3s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#dragonOverlay.active #dragonDismiss {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.5s ease 1s;
+}
+
+#dragonDismiss:hover {
+  color: rgba(99,102,241,0.8);
+  border-color: rgba(99,102,241,0.5);
 }
 
 /* =========================
