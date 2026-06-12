@@ -2016,7 +2016,7 @@ div.typing-dots {
   border: 1px solid rgba(99,102,241,0.25);
   border-radius: 6px;
   background: rgba(5,8,16,0.6);
-  color: rgba(99,102,241,0.35);
+  color: rgb(255, 0, 0);
   font-size: 12px;
   font-family: var(--font-mono);
   cursor: pointer;
