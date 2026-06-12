@@ -379,6 +379,18 @@ function renderTasks() {
   document.getElementById("navCurrentDay").textContent = currentDay;
   document.getElementById("currentDayTitle").textContent = `Day ${currentDay} Tasks`;
 
+  // Mark All Done button
+  const markAllBtn = document.getElementById("markAllDoneBtn");
+  if (markAllBtn) {
+    markAllBtn.onclick = () => {
+      const d = appData.days.find(x => x.day === currentDay);
+      if (!d || d.tasks.length === 0) return;
+      d.completed = d.tasks.map((_, i) => i);
+      saveData();
+      render();
+    };
+  }
+
   const totalTasks = day?.tasks?.length || 0;
   const doneTasks = day?.completed?.length || 0;
   const dayPct = totalTasks === 0 ? 0 : (doneTasks / totalTasks) * 100;
