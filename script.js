@@ -1458,9 +1458,9 @@ const WORDS = [
       const focusT = w.focused && mt < 0.05
         ? clamp((w.alpha - w.baseAlpha) / (FOCUS_ALPHA - w.baseAlpha + 0.001), 0, 1)
         : 0;
-      let r = lerp(110, 205, focusT);
-      let g = lerp(115, 208, focusT);
-      let b = lerp(185, 255, focusT);
+      let r = lerp(70, 205, focusT);
+      let g = lerp(90, 208, focusT);
+      let b = lerp(80, 255, focusT);
       // blend to #FFD0C4 on mouse proximity
       r = lerp(r, MOUSE_R, mt);
       g = lerp(g, MOUSE_G, mt);
